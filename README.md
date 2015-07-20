@@ -14,10 +14,10 @@ var email = new emailModule.Mail({
 email.connect();
 // send email
 email.send({
-    from: __CONFIG.MAIL_FROM,
-    to: __CONFIG.MAIL_DEFAULT_TO,
-    subject: message.subject,
-    content: message.content
+    from: 'sender@email.com',
+    to: 'receipent@email.com',
+    subject: 'Mail Subject',
+    content: 'Mail Content'
 });
 // quit mailserver connection
 email.quit();
