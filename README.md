@@ -1,4 +1,7 @@
 # Wakanda Email Module
+
+Wakanda module for simple email handling
+
 ## Send email example
 ```javascript
 var emailModule = require('email');
