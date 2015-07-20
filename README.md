@@ -1,2 +1,5 @@
-# wak-email
-Wakanda Email Module
+# Wakanda Email Module
+Send email example:
+
+
+Receive email example:
