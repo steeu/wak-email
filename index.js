@@ -1,189 +1,456 @@
 ﻿
 /**
- * The SMTP Instance object allows you to connect, authenticate, 
- * and send an email while specifying the domain.
- *
- * Source: http://forum.wakanda.org/showthread.php?6295-Sending-email-through-GoDaddy&p=28656
- *
- * //send email message
- * require('email').sendMail({
- *     sendTo: 'receipent@domain.com',
- *     sendFrom: 'sender@domain.com',
- *     subject: 'Subject',
- *     content: 'Content Text'
- * });
+ * mailbox (POP3)
  */
 
-var sendMail = function( options ) {
+Mailbox = function(options) {
 	try {
-		var smtp = require('waf-mail/SMTP'),
-			mail = require('waf-mail/mail');
+	    var options = options || {};
 
-		// options
-		var options = options || {},
-			sendTo = options.sendTo,
-			sendFrom = options.sendFrom,
-			subject = options.subject,
-			content = options.content,
-			contentType = options.contentType || 'text/plain',
-			priority = options.priority || 3,
-			message;
-		
-		// mail config
-		var config = {
-			address: __CONFIG.SYSTEM.EMAIL.address,
-			port: __CONFIG.SYSTEM.EMAIL.port,
-			isSSL: __CONFIG.SYSTEM.EMAIL.isSSL,
-			domain: ''
-		};
+	    this.pop3Module = require('email/POP3'); 
+	    this.pop3 = new this.pop3Module.POP3();
+	    
+	    // settings
+	    this.address  = options.address;
+	    this.port     = options.port;
+	    this.isSSL    = options.isSSL;
+		this.user     = options.user;
+		this.password = options.password;
+	} catch (e) {
+		WAKTOOLS.log(e);
+		return e;
+	}
+};
 
-		// create email message
-		message = new mail.Mail();
-		message.subject = subject;
-		message.from = sendFrom;
-		message.to = sendTo;
-		// check if html or text
-		if (contentType == 'text/plain') {
-			message.setBodyType('text/plain; charset=utf-8');
-			message.setBody(content);		
-		} else if (contentType == 'text/html') {
-			message.setBodyType('text/html; charset=utf-8');
-			if (options.list) {
-				var listContent = renderHtmlTable(options.list);
-				
-				// add list to content
-				message.setBody('<pre style="font-family: monospace;">' + content + listContent + '</pre>');				
-			} else {
-				message.setBody('<pre style="font-family: monospace;">' + content + '</pre>');		
-			}
-		} else {
-			message.setBodyType(contentType);
-			message.setBody(content);		
-		}
-		// add priority field
-		message.addField('X-Priority', priority + '');
-	    //init error tracking
-	    var errName = '';
-	    var errInfo = [];
-	   	var isSent = false;
-	    //connect
-	    var client = new smtp.SMTP();
-	    client.connect(config.address, config.port, config.isSSL, config.domain, function onAfterConnect(isConnected, replyArr, isESMTP) {
-	        if ( isConnected ) {
-	        	//send without authentication
-	            client.send(message.from, message.to, message, function onAfterSend(isSent, replyArr) {
-	                if ( isSent ) {
-	                    exitWait();
-	                } else {
-	                    errName = 'smtp_SendFailed';
-	                    errInfo = replyArr;
-	                    exitWait();
-	                }
-	            });
-	        } else {
-	            errName = 'smtp_CouldNotConnect';
-	            errInfo = replyArr;
-	            exitWait();
-	        }
+
+/**
+ * connect
+ *
+ * @return {Object} result
+ */
+ 
+Mailbox.prototype.connect = function() {
+	try {
+        var result = {};
+
+        // pop3 connection
+        this.pop3.connect(this.address, this.port, this.isSSL, function(isOK, replyArr) {
+            // validate request
+            if (isOK) {
+                // update result
+                result.success = 1;
+                result.result = replyArr;
+                exitWait();
+            } else {
+                // update error
+                result.success = 0;
+                result.error = 'POP3 connection failed';
+                result.errorInfo = replyArr;
+                exitWait();
+            }
+        });
+        wait();
+
+        return result;
+	} catch (e) {
+		WAKTOOLS.log(e);
+		return e;
+	}
+};
+
+
+/**
+ * authenticate
+ *
+ * @return {Object} result
+ */
+ 
+Mailbox.prototype.authenticate = function() {
+	try {
+        var result = {};
+
+        // pop3 authentication
+        this.pop3.authenticate(this.user, this.password, function(isOK, replyArr) {
+            // validate request
+            if (isOK) {
+                // update result
+                result.success = 1;
+                result.result = replyArr;
+                exitWait();
+            } else {
+                // update error
+                result.success = 0;
+                result.error = 'POP3 authentication failed';
+                result.errorInfo = replyArr;
+                exitWait();
+            }
+        });
+        wait();
+
+        return result;
+	} catch (e) {
+		WAKTOOLS.log(e);
+		return e;
+	}
+};
+
+
+/**
+ * get all message sizes
+ *
+ * @return {Object} result
+ */
+ 
+Mailbox.prototype.getAllMessageSizes = function() {
+	try {
+        var result = {};
+
+        // get all message sizes
+        this.pop3.getAllMessageSizes(function(isOK, replyArr) {
+            // validate request
+            if (isOK) {
+                // update result
+                result.success = 1;
+                result.result = replyArr;
+                exitWait();
+            } else {
+                // update error
+                result.success = 0;
+                result.error = 'POP3 get all message sizes failed';
+                result.errorInfo = replyArr;
+                exitWait();
+            }
+        });
+        wait();
+
+        return result;
+	} catch (e) {
+		WAKTOOLS.log(e);
+		return e;
+	}
+};
+
+
+/**
+ * retrieve message
+ *
+ * @param  {Number} message number
+ * @return {Object} result
+ */
+ 
+Mailbox.prototype.retrieveMessage = function(number) {
+	try {
+        var result = {};
+
+        // retrieve message
+        this.pop3.retrieveMessage(number, function(isOK, replyArr) {
+            // validate request
+            if (isOK) {
+                // create message object
+                result.success = 1;
+                result.message = {};
+                result.lines = replyArr;
+                
+                // add content
+                if (replyArr[1] && replyArr[1].toString()) {
+                    //result.message = parseMailContent(replyArr[1].toString());
+                    result.message = replyArr[1];
+                }
+                exitWait();
+            } else {
+                // update error
+                result.success = 0;
+                result.error = 'POP3 retrieve message failed';
+                result.errorInfo = replyArr;
+                exitWait();
+            }
+        });
+        wait();
+
+        return result;
+	} catch (e) {
+		WAKTOOLS.log(e);
+		return e;
+	}
+};
+
+
+/**
+ * mark for deletion
+ *
+ * @param  {Number} message number
+ * @return {Object} result
+ */
+ 
+Mailbox.prototype.markForDeletion = function(number) {
+	try {
+        var result = {};
+
+        // mark folder for deletion
+        this.pop3.markForDeletion(number, function(isOK, replyArr) {
+            // validate request
+            if (isOK) {
+                // update result
+                result.success = 1;
+                result.result = replyArr;
+                exitWait();
+            } else {
+                // update error
+                result.success = 0;
+                result.error = 'POP3 mark for deletion failed';
+                result.errorInfo = replyArr;
+                exitWait();
+            }
+        });
+        wait();
+
+        return result;
+	} catch (e) {
+		WAKTOOLS.log(e);
+		return e;
+	}
+};
+
+
+
+
+/**
+ * clear deletion marks
+ *
+ * @return {Object} result
+ */
+ 
+Mailbox.prototype.clearDeletionMarks = function() {
+	try {
+        var result = {};
+
+        // clear deletion marks
+        this.pop3.clearDeletionMarks(function(isOK, replyArr) {
+            // validate request
+            if (isOK) {
+                // update result
+                result.success = 1;
+                result.result = replyArr;
+                exitWait();
+            } else {
+                // update error
+                result.success = 0;
+                result.error = 'POP3 clear deletion marks failed';
+                result.errorInfo = replyArr;
+                exitWait();
+            }
+        });
+        wait();
+
+        return result;
+	} catch (e) {
+		WAKTOOLS.log(e);
+		return e;
+	}
+};
+
+
+/**
+ * quit
+ *
+ * @return {Object} result
+ */
+ 
+Mailbox.prototype.quit = function() {
+	try {
+        var result = {};
+
+        // quit
+        this.pop3.quit(function(isOK, replyArr) {
+            // validate request
+            if (isOK) {
+                // update result
+                result.success = 1;
+                result.result = replyArr;
+                exitWait();
+            } else {
+                // update error
+                result.success = 0;
+                result.error = 'POP3 quit failed';
+                result.errorInfo = replyArr;
+                exitWait();
+            }
+        });
+        wait();
+
+        return result;
+	} catch (e) {
+		WAKTOOLS.log(e);
+		return e;
+	}
+};
+
+
+/**
+ * send email messages
+ *
+ * @return {Object} result
+ */
+ 
+Mail = function(options) {
+	try {
+	    var options = options || {};
+
+	    this.smtpModule = require('waf-mail/SMTP');
+        this.mailModule = require('waf-mail/mail');
+   	    
+	    this.smtp = new this.smtpModule.SMTP();
+	    
+	    // settings
+	    this.address  = options.address;
+	    this.port     = options.port;
+	    this.isSSL    = options.isSSL;
+	    this.domain   = options.domain || '';
+	} catch (e) {
+		WAKTOOLS.log(e);
+		return e;
+	}
+}
+
+
+/**
+ * connect to mailserver
+ *
+ * @return {Object} result
+ */
+
+Mail.prototype.connect = function() {
+	try {
+        var result = {};
+
+        // connect
+	    this.smtp.connect(this.address, this.port, this.isSSL, this.domain, function(isOK, replyArr) {
+            // validate request
+            if (isOK) {
+                // update result
+                result.success = 1;
+                result.result = replyArr;
+                exitWait();
+            } else {
+                // update error
+                result.success = 0;
+                result.error = 'SMTP connection failed';
+                result.errorInfo = replyArr;
+                exitWait();
+            }
 	    });
 	    wait();
-	    // determine if sent
-	    if ( errName === '' ) {
-	        isSent = true;
-	    } else {
-	        isSent = false;
-	    }
-	 
-	    return {
-	        isSent: isSent,
-	        errName: errName,
-	        errInfo: errInfo
-	    };		
+		
+		return result;
 	} catch (e) {
-		WAKTOOLS.Error.log(e);
+		WAKTOOLS.log(e);
 		return e;		
 	}
 };
 
 
 /**
- * send info mail
+ * send mail
+ *
+ * @param  {Object} options
+ * @return {Object} result
  */
 
-var sendInfoMail = function() {
+Mail.prototype.send = function(options) {
 	try {
-		sendMail({
-			subject: application.name + ' start [' + application.httpServer.hostName + ']', 
-			content: 'WAKANDA APPLICATION REPORT'
-				+ '<br>=========================='
-				+ '<br>'
-				+ '<br>' + moment().format('DD.MM.YYYY HH:mm')
-				+ '<br>'
-				+ '<br>APPLICATION' 
-				+ '<br>------------------------------------------------------------'
-				+ '<br>Server:             ' + application.httpServer.hostName
-				+ '<br>IP:                 ' + application.httpServer.ipAddress
-				+ '<br>Port:               ' + application.httpServer.port
-				+ '<br>SSL:                ' + application.httpServer.ssl.enabled
-				+ '<br>SSL Port:           ' + application.httpServer.ssl.port 
-				+ '<br>'
-				+ '<br>WAKANDA'
-				+ '<br>------------------------------------------------------------'
-				+ '<br>Product:            ' + application.process.productName
-				+ '<br>Version:            ' + application.process.version
-				+ '<br>PID:                ' + application.process.pid 
-				+ '<br>'
-				+ '<br>SYSTEM'
-				+ '<br>------------------------------------------------------------'
-				+ '<br>DataFolder:         ' + ds.getDataFolder().path
-				+ '<br>Volume Size:        ' + Math.round(ds.getModelFolder().getVolumeSize('WithQuotas') / 1024 / 1024 / 1024) + ' GB'
-				+ '<br>Free Disk Space:    ' + Math.round(ds.getModelFolder().getFreeSpace('WithQuotas') / 1024 / 1024 / 1024) + ' GB',
-			contentType: 'text/html'
-		});			
+	    var options = options || {},
+	        result = {};
+	   
+	    this.from = options.from;
+	    this.to = options.to;
+	    this.subject = options.subject;
+	    this.priority = options.priority || 3;
+	    this.content = options.content || '';
+	    this.contentType = options.contentType || 'text/plain';
+	    
+
+		// create email message
+		var message = new this.mailModule.Mail();
+		
+		message.subject = this.subject;
+		message.from = this.from;
+		message.to = this.to;
+    	message.setBody(this.content);	
+		
+		// check if html or text
+		switch(this.contentType) {
+			case 'text/plain':
+    			message.setBodyType('text/plain; charset=utf-8');
+				break;
+			case 'text/html':
+				break;
+    			message.setBodyType('text/html; charset=utf-8');
+			default:
+				message.setBodyType(contentType);
+		}
+		// add priority field
+		message.addField('X-Priority', this.priority + '');
+		// send
+        this.smtp.send(this.from, this.to, message, function(isOK, replyArr) {
+            // validate request
+            if (isOK) {
+                // update result
+                result.success = 1;
+                result.result = replyArr;
+                exitWait();
+            } else {
+                // update error
+                result.success = 0;
+                result.error = 'SMTP send email failed';
+                result.errorInfo = replyArr;
+                exitWait();
+            }
+        });
+	    wait();
+	    
+	    return result;	
 	} catch (e) {
-		WAKTOOLS.Error.log(e);
+		WAKTOOLS.log(e);
 		return e;		
 	}
 };
 
 
 /**
- * render html table from object array
+ * quit
+ *
+ * @return {Object} result
  */
-
-var renderHtmlTable = function (objArray) {
+ 
+Mail.prototype.quit = function() {
 	try {
-		var enableTableHeader = false,
-			result = '';
-			
-	    // header theme	 
-	    result = '<table border="0" cellspacing="0" cellpadding="0" style="font-family: Calibri, sans-serif;>';
-	    // table head
-	    if (enableTableHeader) {
-	        result += '<thead><tr>';
-	        for (var index in objArray[0]) {
-	            result += '<th scope="col">' + index + '</th>';
-	        }
-	        result += '</tr></thead>';
-	    }
-	    // table body
-	    result += '<tbody>';
-	    for (var i = 0; i < objArray.length; i++) {
-	        result += (i % 2 == 0) ? '<tr class="alt">' : '<tr>';
-	        for (var index in objArray[i]) {
-	            result += '<td style="padding:10px 25px 0px 0px">' + objArray[i][index] + '</td>';
-	        }
-	        result += '</tr>';
-	    }
-	    result += '</tbody>';
-	    result += '</table>';
+        var result = {};
 
-	    return result;
+        // quit
+        this.smtp.quit(function(isOK, replyArr) {
+            // validate request
+            if (isOK) {
+                // update result
+                result.success = 1;
+                result.result = replyArr;
+                exitWait();
+            } else {
+                // update error
+                result.success = 0;
+                result.error = 'SMTP quit failed';
+                result.errorInfo = replyArr;
+                exitWait();
+            }
+        });
+        wait();
+
+        return result;
 	} catch (e) {
-		WAKTOOLS.Error.log(e);
-		return e;		
+		WAKTOOLS.log(e);
+		return e;
 	}
 };
 
-exports.sendMail = sendMail;
-exports.sendInfoMail = sendInfoMail;
+
+exports.Mail    = Mail;
+exports.Mailbox = Mailbox;
