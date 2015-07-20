@@ -1,4 +1,4 @@
-﻿
+
 /**
  * mailbox (POP3)
  */
@@ -306,6 +306,8 @@ Mail = function(options) {
 	    this.port     = options.port;
 	    this.isSSL    = options.isSSL;
 	    this.domain   = options.domain || '';
+	    this.user     = options.user || '';
+	    this.password = options.password || '';
 	} catch (e) {
 		WAKTOOLS.log(e);
 		return e;
@@ -345,6 +347,42 @@ Mail.prototype.connect = function() {
 	} catch (e) {
 		WAKTOOLS.log(e);
 		return e;		
+	}
+};
+
+
+/**
+ * authenticate
+ *
+ * @return {Object} result
+ */
+ 
+Mail.prototype.authenticate = function() {
+	try {
+        var result = {};
+
+        // pop3 authentication
+        this.smtp.authenticate(this.user, this.password, function(isOK, replyArr) {
+            // validate request
+            if (isOK) {
+                // update result
+                result.success = 1;
+                result.result = replyArr;
+                exitWait();
+            } else {
+                // update error
+                result.success = 0;
+                result.error = 'SMTP authentication failed';
+                result.errorInfo = replyArr;
+                exitWait();
+            }
+        });
+        wait();
+
+        return result;
+	} catch (e) {
+		WAKTOOLS.log(e);
+		return e;
 	}
 };
 
