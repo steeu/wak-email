@@ -1,5 +1,5 @@
 # Wakanda Email Module
-Send email example:
+## Send email example
 ```javascript
 var emailModule = require('email');
 var email = new emailModule.Mail({
@@ -23,4 +23,23 @@ email.send({
 email.quit();
 ```
 
-Receive email example:
+## Receive email example
+```javascript
+var emailModule = require('email');
+var mailbox = new emailModule.Mailbox({
+    address: 'pop.gmail.com',
+    port: 995,
+    isSSL: true,
+    user: 'user',
+    password: 'password'
+});
+
+// connect to mailserver
+mailbox.connect();
+// authenticate
+mailbox.authenticate();
+// get all message sizes
+mailbox.getAllMessageSizes()
+// quit mailserver connection
+mailbox.quit();
+```
