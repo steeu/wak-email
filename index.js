@@ -303,8 +303,8 @@ Mail = function(options) {
 	    
 	    // settings
 	    this.address  = options.address;
-	    this.port     = options.port;
-	    this.isSSL    = options.isSSL;
+	    this.port     = options.port || 25;
+	    this.isSSL    = options.isSSL || false;
 	    this.domain   = options.domain || '';
 	    this.user     = options.user || '';
 	    this.password = options.password || '';
@@ -421,8 +421,8 @@ Mail.prototype.send = function(options) {
     			message.setBodyType('text/plain; charset=utf-8');
 				break;
 			case 'text/html':
-				break;
     			message.setBodyType('text/html; charset=utf-8');
+				break;
 			default:
 				message.setBodyType(contentType);
 		}
